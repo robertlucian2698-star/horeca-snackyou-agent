@@ -1,0 +1,38 @@
+name: Build horeca-snackyou.exe
+
+# Construiește executabilul Windows pe un runner windows-latest și îl publică
+# drept artifact descărcabil (horeca-snackyou-exe). Rulează la fiecare push și
+# manual (workflow_dispatch).
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalează dependințele
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Construiește executabilul
+        run: >
+          pyinstaller --onefile --console --name horeca-snackyou
+          --collect-all httpx --collect-all httpcore --collect-all certifi
+          --hidden-import pymysql --hidden-import pymysql.cursors
+          horeca_snackyou.py
+
+      - name: Publică artifactul (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: horeca-snackyou-exe
+          path: dist/horeca-snackyou.exe
+          if-no-files-found: error

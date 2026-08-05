@@ -1,0 +1,11 @@
+# Secrete + stare locală — NU se comit niciodată
+horeca-snackyou.config.json
+horeca-snackyou.state.db
+*.state.db
+
+# Artefacte PyInstaller
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
