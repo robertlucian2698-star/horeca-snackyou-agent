@@ -58,7 +58,7 @@ logging.basicConfig(
 log = logging.getLogger("horeca-snackyou")
 
 # ─── Constante ────────────────────────────────────────────────────────────────
-AGENT_VERSION = "1.0.1"
+AGENT_VERSION = "1.0.2"
 APP_NAME = "HorecaSnackYou"
 
 # Cloud SnackYou — baked. Se poate suprascrie cu env HORECA_BACKEND_URL / config.
@@ -306,13 +306,28 @@ def read_unitypos(cfg: dict, since_cod: int) -> tuple[list[dict], list[dict]]:
         ph = ",".join(["%s"] * len(cods))
         cur.execute(
             f"""SELECT v.cod, v.cod_bon, v.denumire, v.categorie, v.gestiune,
-                       v.cantitate, v.pret, v.cantitate*v.pret AS valoare, v.um, v.tva, b.data
+                       v.cantitate, v.pret, v.pret AS valoare, v.um, v.tva, b.data
                 FROM vanzari v INNER JOIN bonuri b ON b.cod = v.cod_bon
                 WHERE v.cod_bon IN ({ph})""",
             cods,
         )
         vanzari = [_serialize(r) for r in cur.fetchall()]
         return bonuri, vanzari
+    finally:
+        conn.close()
+
+
+def read_registru_casa(cfg: dict, since_cod: int) -> list[dict]:
+    """Citește registrul de casă nou (cod > since_cod). READ ONLY.
+    SELECT * ca să capturăm toate coloanele (fond de casă, rulaje, solduri, Z)."""
+    conn = unitypos_connect(cfg)
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM registru_casa WHERE cod > %s ORDER BY cod LIMIT %s",
+            (since_cod, int(cfg["batch_size"])),
+        )
+        return [_serialize(r) for r in cur.fetchall()]
     finally:
         conn.close()
 
@@ -476,6 +491,31 @@ def drain_queue(cfg: dict) -> int:
     return sent
 
 
+def sync_registru_casa(cfg: dict) -> None:
+    """Registrul de casă (fond de casă + Raport Z). Volum mic → push DIRECT
+    (fără queue durabilă). Cursorul avansează doar la 200; idempotent pe backend."""
+    read_cur = get_state("read_cursor_casa")
+    for _ in range(MAX_CATCHUP_ITERS):
+        try:
+            rows = read_registru_casa(cfg, read_cur)
+        except Exception as e:
+            log.warning("citire registru_casa eșuată: %s", type(e).__name__)
+            return
+        if not rows:
+            return
+        max_cod = max(int(r["cod"]) for r in rows)
+        status, body = _post_sync(cfg, {"bonuri": [], "vanzari": [], "registru_casa": rows})
+        if status != 200:
+            log.warning("registru_casa push HTTP %s — reîncerc data viitoare", status)
+            return
+        set_state("read_cursor_casa", max_cod)
+        log.info("  -> registru_casa: %s rânduri (inserate noi=%s, cursor=%s)",
+                 len(rows), body.get("inserted_casa"), max_cod)
+        read_cur = max_cod
+        if len(rows) < int(cfg["batch_size"]):
+            return
+
+
 # ─── Un ciclu de sync (cu catch-up rapid la prima pornire) ───────────────────
 def sync_once(cfg: dict, dry_run: bool = False) -> int:
     if dry_run:
@@ -521,6 +561,9 @@ def sync_once(cfg: dict, dry_run: bool = False) -> int:
             log.warning("catch-up oprit la %s batch-uri — continui la ciclul următor", iterations)
             break
 
+    # Registru de casă (fond de casă + Raport Z) — supliment, push direct
+    sync_registru_casa(cfg)
+
     if total_new:
         log.info("Ciclu: %s bonuri noi citite.", total_new)
     dl = dead_letter_len()
@@ -563,10 +606,27 @@ def acquire_single_instance() -> bool:
         return True  # dacă mecanismul de lock pică, NU blocăm agentul
 
 
+def _ensure_autostart() -> None:
+    """Self-healing: dacă pornirea automată (task Windows) NU există, o (re)creează.
+    Așa agentul revine singur după o repornire, chiar dacă n-a fost activată la setup.
+    Best-effort, silent."""
+    if not sys.platform.startswith("win"):
+        return
+    try:
+        q = subprocess.run(["schtasks", "/Query", "/TN", APP_NAME],
+                           capture_output=True, text=True)
+        if q.returncode != 0:  # task-ul lipsește
+            cmd_install()
+    except Exception:
+        pass
+
+
 def run_loop(cfg: dict, dry_run: bool = False) -> int:
     if not dry_run and not acquire_single_instance():
         print("Agentul rulează deja (altă fereastră). Închid această fereastră.")
         return 0
+    if not dry_run:
+        _ensure_autostart()
     print("=" * 60)
     print("  HORECA SNACKYOU — casa de marcat conectată la cloud")
     print(f"  cloud:    {cfg['backend_url']}")
