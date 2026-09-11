@@ -1,8 +1,7 @@
-name: Build horeca-snackyou.exe
+name: Build horeca-snackyou (exe + installer)
 
-# Construiește executabilul Windows pe un runner windows-latest și îl publică
-# drept artifact descărcabil (horeca-snackyou-exe). Rulează la fiecare push și
-# manual (workflow_dispatch).
+# Construiește pe windows-latest: executabilul (PyInstaller) și installer-ul
+# (Inno Setup). Publică ambele ca artifacte. Rulează la push și manual.
 
 on:
   workflow_dispatch:
@@ -23,16 +22,24 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pyinstaller
 
-      - name: Construiește executabilul
+      - name: Construiește executabilul (.exe)
         run: >
           pyinstaller --onefile --console --name horeca-snackyou
           --collect-all httpx --collect-all httpcore --collect-all certifi
           --hidden-import pymysql --hidden-import pymysql.cursors
           horeca_snackyou.py
 
-      - name: Publică artifactul (.exe)
+      - name: Instalează Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Construiește installer-ul
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
+
+      - name: Publică artifactele (exe + installer)
         uses: actions/upload-artifact@v4
         with:
-          name: horeca-snackyou-exe
-          path: dist/horeca-snackyou.exe
+          name: horeca-snackyou
+          path: |
+            dist/horeca-snackyou.exe
+            installer_out/horeca-snackyou-setup.exe
           if-no-files-found: error

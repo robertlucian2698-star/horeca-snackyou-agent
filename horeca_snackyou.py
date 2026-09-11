@@ -58,11 +58,11 @@ logging.basicConfig(
 log = logging.getLogger("horeca-snackyou")
 
 # ─── Constante ────────────────────────────────────────────────────────────────
-AGENT_VERSION = "1.0.2"
+AGENT_VERSION = "1.0.3"
 APP_NAME = "HorecaSnackYou"
 
 # Cloud SnackYou — baked. Se poate suprascrie cu env HORECA_BACKEND_URL / config.
-DEFAULT_BACKEND_URL = "https://snackyou-app-production.up.railway.app/api/v1"
+DEFAULT_BACKEND_URL = "https://snackyou-backend.fly.dev/api/v1"
 
 BATCH_SIZE = 200          # rânduri citite/trimise per batch
 SYNC_INTERVAL = 30        # secunde între cicluri (steady-state)
