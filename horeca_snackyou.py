@@ -58,7 +58,7 @@ logging.basicConfig(
 log = logging.getLogger("horeca-snackyou")
 
 # ─── Constante ────────────────────────────────────────────────────────────────
-AGENT_VERSION = "1.0.4"
+AGENT_VERSION = "1.0.5"
 APP_NAME = "HorecaSnackYou"
 
 # Cloud SnackYou — baked. Se poate suprascrie cu env HORECA_BACKEND_URL / config.
@@ -516,6 +516,46 @@ def sync_registru_casa(cfg: dict) -> None:
             return
 
 
+# ─── Diagnostic: descoperă tabelul cu mișcările de casă (Depunere/Retragere/Zi) ─
+_CASA_KW = ("casa", "numerar", "depuner", "retrager", "inchider", "deschider",
+            "registru", "rulaj", "sold", "fond", "_zi", "zilnic", "raport")
+
+
+def _discover_casa(cfg: dict) -> None:
+    """O dată la pornire: listează tabelele UnityPOS + eșantion din cele candidate
+    (mișcări de casă) și trimite diagnosticul în cloud (rând special cod=999999999
+    în registru_casa) ca să identific tabelul fondului de casă — fără poze."""
+    if get_state("diag_casa_sent"):
+        return
+    try:
+        conn = unitypos_connect(cfg)
+        try:
+            cur = conn.cursor()
+            cur.execute("SHOW TABLES")
+            tables = [list(r.values())[0] for r in cur.fetchall()]
+            cand = {}
+            for t in tables:
+                if any(k in t.lower() for k in _CASA_KW):
+                    try:
+                        cur.execute(f"SELECT COUNT(*) AS c FROM `{t}`")
+                        n = cur.fetchone()["c"]
+                        cur.execute(f"SELECT * FROM `{t}` ORDER BY 1 DESC LIMIT 2")
+                        cand[t] = {"n": n, "sample": [_serialize(r) for r in cur.fetchall()]}
+                    except Exception as e:
+                        cand[t] = {"err": type(e).__name__}
+        finally:
+            conn.close()
+        diag = {"cod": 999999999, "__diag__": True, "tables": tables, "candidates": cand}
+        status, _ = _post_sync(cfg, {"bonuri": [], "vanzari": [], "registru_casa": [diag]})
+        if status == 200:
+            set_state("diag_casa_sent", 1)
+            log.info("DIAG casă trimis în cloud (%s tabele, candidați: %s)", len(tables), list(cand.keys()))
+        else:
+            log.warning("DIAG casă push HTTP %s", status)
+    except Exception as e:
+        log.warning("DIAG casă eșuat: %s", type(e).__name__)
+
+
 # ─── Un ciclu de sync (cu catch-up rapid la prima pornire) ───────────────────
 def sync_once(cfg: dict, dry_run: bool = False) -> int:
     if dry_run:
@@ -631,6 +671,8 @@ def run_loop(cfg: dict, dry_run: bool = False) -> int:
     print(f"  interval: {cfg['sync_interval_seconds']}s   versiune: {AGENT_VERSION}")
     print("  (lasă fereastra deschisă — se sincronizează singur)")
     print("=" * 60)
+    if not dry_run:
+        _discover_casa(cfg)
     interval = int(cfg["sync_interval_seconds"])
     while True:
         try:
