@@ -58,7 +58,7 @@ logging.basicConfig(
 log = logging.getLogger("horeca-snackyou")
 
 # ─── Constante ────────────────────────────────────────────────────────────────
-AGENT_VERSION = "1.0.3"
+AGENT_VERSION = "1.0.4"
 APP_NAME = "HorecaSnackYou"
 
 # Cloud SnackYou — baked. Se poate suprascrie cu env HORECA_BACKEND_URL / config.
@@ -607,15 +607,12 @@ def acquire_single_instance() -> bool:
 
 
 def _ensure_autostart() -> None:
-    """Self-healing: dacă pornirea automată (task Windows) NU există, o (re)creează.
-    Așa agentul revine singur după o repornire, chiar dacă n-a fost activată la setup.
-    Best-effort, silent."""
+    """Self-healing: dacă scurtătura de pornire automată (folder Startup) lipsește,
+    o (re)creează. Așa agentul revine singur după o repornire. Best-effort, silent."""
     if not sys.platform.startswith("win"):
         return
     try:
-        q = subprocess.run(["schtasks", "/Query", "/TN", APP_NAME],
-                           capture_output=True, text=True)
-        if q.returncode != 0:  # task-ul lipsește
+        if not os.path.exists(_startup_lnk_path()):
             cmd_install()
     except Exception:
         pass
@@ -804,33 +801,41 @@ def cmd_status(cfg: dict) -> int:
     return 0
 
 
-# ─── install / uninstall (Task Scheduler, FĂRĂ elevare) ──────────────────────
-def _task_command() -> str:
-    """Comanda pentru schtasks /TR. Căile sunt citate (spații în „Program Files”)."""
-    if getattr(sys, "frozen", False):
-        return f'"{sys.executable}" run'
-    return f'"{sys.executable}" "{Path(__file__).resolve()}" run'
+# ─── install / uninstall (folder Startup — FĂRĂ admin, FĂRĂ schtasks) ─────────
+# schtasks e blocat pe unele case (POS): „Access is denied". Scurtătura din
+# folderul Startup al utilizatorului rulează la fiecare login fără drepturi speciale.
+def _startup_lnk_path() -> str:
+    base = os.getenv("APPDATA") or os.path.expanduser("~")
+    return os.path.join(base, "Microsoft", "Windows", "Start Menu",
+                        "Programs", "Startup", "HorecaSnackYou.lnk")
 
 
 def cmd_install() -> int:
     if not sys.platform.startswith("win"):
         print("Pornirea automată e disponibilă doar pe Windows.")
         return 1
-    tr = _task_command()
+    exe = sys.executable
+    args = "run" if getattr(sys, "frozen", False) else f'"{Path(__file__).resolve()}" run'
+    lnk = _startup_lnk_path()
+    ps = (
+        "$W=New-Object -ComObject WScript.Shell;"
+        f"$S=$W.CreateShortcut('{lnk}');"
+        f"$S.TargetPath='{exe}';"
+        f"$S.Arguments='{args}';"
+        f"$S.WorkingDirectory='{os.path.dirname(exe)}';"
+        "$S.Save()"
+    )
     try:
-        # ONLOGON pt utilizatorul curent — NU cere drepturi de admin.
-        # (fără /RL HIGHEST: ăla ar cere elevare și ar eșua la dublu-click normal.)
-        subprocess.run(
-            ["schtasks", "/Create", "/TN", APP_NAME, "/TR", tr, "/SC", "ONLOGON", "/F"],
-            check=True, capture_output=True, text=True,
-        )
-        print(f"  ✓ Pornire automată activată (task Windows „{APP_NAME}”).")
+        os.makedirs(os.path.dirname(lnk), exist_ok=True)
+        subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps],
+                       check=True, capture_output=True, text=True)
+        print("  ✓ Pornire automată activată (scurtătură în folderul Startup).")
         return 0
     except subprocess.CalledProcessError as e:
-        print(f"  ✗ Nu am putut crea task-ul: {(e.stderr or e.stdout or '').strip()}")
+        print(f"  ✗ Nu am putut crea scurtătura: {(e.stderr or e.stdout or '').strip()[:150]}")
         return 1
     except FileNotFoundError:
-        print("  ✗ schtasks indisponibil.")
+        print("  ✗ powershell indisponibil.")
         return 1
 
 
@@ -839,12 +844,13 @@ def cmd_uninstall() -> int:
         print("Disponibil doar pe Windows.")
         return 1
     try:
-        subprocess.run(["schtasks", "/Delete", "/TN", APP_NAME, "/F"],
-                       check=True, capture_output=True, text=True)
-        print(f"  ✓ Pornire automată dezactivată („{APP_NAME}”).")
+        lnk = _startup_lnk_path()
+        if os.path.exists(lnk):
+            os.remove(lnk)
+        print("  ✓ Pornire automată dezactivată.")
         return 0
-    except subprocess.CalledProcessError as e:
-        print(f"  ✗ {(e.stderr or e.stdout or '').strip()}")
+    except Exception as e:
+        print(f"  ✗ {type(e).__name__}")
         return 1
 
 

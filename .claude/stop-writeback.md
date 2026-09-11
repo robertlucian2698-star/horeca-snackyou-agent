@@ -1,38 +1,39 @@
 # Stop Writeback Draft
 
-- Date: 2026-08-05 21:08:30
+- Date: 2026-09-11 16:05:13
 - Session: 1b20b2ff-e91d-46c1-9500-d6236af99adf
 - CWD: /Users/robertcioara/horeca-snackyou-agent
 - Transcript: /Users/robertcioara/.claude/projects/-Users-robertcioara/1b20b2ff-e91d-46c1-9500-d6236af99adf.jsonl
 - Serious session: 1
-- Tool events: 1153
-- User events: 576
-- Transcript lines: 2522
+- Tool events: 1601
+- User events: 774
+- Transcript lines: 3875
 
 ## Last Assistant Message
 
-Totul e gata. Iată `.exe`-ul tău:
+## Pașii (pe PC-ul de la casă)
 
-## ⬇️ Descarcă `horeca-snackyou.exe`
-**https://github.com/robertlucian2698-star/horeca-snackyou-agent/releases/tag/v1.0.1**
+**1. Descarcă + rulează installer-ul**
+- Deschide linkul de mai sus pe PC-ul casei → se descarcă `horeca-snackyou-setup.exe`
+- Dublu-click pe el. Dacă apare „Windows protected your PC" → **„More info" → „Run anyway"**
+- Apasă **Next / Install** (nu cere parolă de administrator). La final lasă bifat **„Configurează acum"** → **Finish**
 
-E un fișier real de Windows (11 MB), construit și verificat.
+**2. Se deschide o fereastră neagră de configurare**
+- La **[1/3]** se conectează singură la casa de marcat (UnityPOS)
+- La **[2/3]** îți cere un **cod de conectare** — aici te oprești
 
-## Pasul următor (fă-l pe PC-ul cu UnityPOS — cel de la casă)
+**3. Generează codul din dashboard** (pe telefon sau alt browser)
+- Intră în dashboard → **Setări → Conexiune POS → „Generează cod de conectare"**
+- Copiază codul **`SNK-XXXX-XXXX`**
 
-1. **Pe PC-ul de la casă**, deschide linkul de mai sus (ești deja logat pe GitHub).
-2. La secțiunea **„Assets”**, click pe **`horeca-snackyou.exe`** → se descarcă.
-3. Mută fișierul într-un folder simplu (ex: pe **Desktop** sau `C:\HorecaSnackYou\`) — *nu* în „Program Files”.
-4. **Dublu-click** pe el.
-   - Dacă apare „Windows protected your PC” → **„More info” → „Run anyway”** (e normal, e programul tău).
-5. Se deschide o fereastră neagră cu configurarea. **Oprește-te la primul pas** și spune-mi **ce scrie la `[1/3] Conectare la casa de marcat`**:
-   - fie **„✓ Conectat la UnityPOS”** (perfect, mergem mai departe),
-   - fie **îți cere o parolă** (atunci găsim împreună parola din UnityPOS — te ghidez).
+**4. Scrie codul în fereastra neagră** + Enter → **[3/3]** activează pornirea automată → gata
 
-Fă un pas odată; ne oprim la checkpoint-ul ăsta.
+După asta agentul citește din nou casa de marcat și **umple golul (22 iulie → azi) + aduce fondul de casă/Raportul Z**.
 
 ---
-🔑 **Despre cheia de acces:** expiră singură în 7 zile. O poți lăsa până confirmăm că agentul merge pe PC (poate mai fac un mic retuș), apoi o ștergi de la https://github.com/settings/tokens. Nu o folosesc la nimic altceva.
+De acum: **instalezi o dată, pornește singur la fiecare boot** — exact ce ai cerut. 🚀
+
+Spune-mi când ai ajuns la pasul cu codul (sau dacă apare ceva pe drum) și te ghidez pe loc.
 
 ## Suggested Writeback
 

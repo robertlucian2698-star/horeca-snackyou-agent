@@ -3,7 +3,7 @@
 ; final, pornire automată la boot (agentul își pune singur task-ul schtasks).
 
 #define AppName "HORECA SnackYou"
-#define AppVer "1.0.3"
+#define AppVer "1.0.4"
 #define ExeName "horeca-snackyou.exe"
 
 [Setup]
@@ -29,6 +29,8 @@ Source: "dist\{#ExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Name: "{autoprograms}\HORECA SnackYou"; Filename: "{app}\{#ExeName}"; Parameters: "run"
 Name: "{autoprograms}\Configurează HORECA SnackYou"; Filename: "{app}\{#ExeName}"; Parameters: "setup"
 Name: "{autodesktop}\HORECA SnackYou"; Filename: "{app}\{#ExeName}"; Parameters: "run"; Tasks: desktopicon
+; Pornire automată la fiecare login — folder Startup (fără admin, fără schtasks).
+Name: "{userstartup}\HorecaSnackYou"; Filename: "{app}\{#ExeName}"; Parameters: "run"
 
 [Tasks]
 Name: "desktopicon"; Description: "Creează scurtătură pe Desktop"; Flags: unchecked
