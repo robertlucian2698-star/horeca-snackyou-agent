@@ -6,6 +6,7 @@ import sqlite3
 import subprocess
 import tempfile
 import unittest
+from contextlib import closing
 
 
 @unittest.skipUnless(os.name == 'nt', 'Requires Windows and compiled Inno Setup installer')
@@ -21,9 +22,10 @@ class InstallerUpgradeTests(unittest.TestCase):
             config = target / 'horeca-snackyou.config.json'
             config.write_text('{"agent_token":"SYNTHETIC-NOT-A-REAL-TOKEN","unitypos_database":"fixture"}')
             db = target / 'horeca-snackyou.state.db'
-            with sqlite3.connect(db) as conn:
+            with closing(sqlite3.connect(db)) as conn:
                 conn.execute('CREATE TABLE fixture (cursor INTEGER, queued TEXT)')
                 conn.execute('INSERT INTO fixture VALUES (15213, ?)', ('synthetic pending receipt',))
+                conn.commit()
             pending = target / 'custom-pending.txt'
             pending.write_text('synthetic untouched')
             files = (config, db, pending)
