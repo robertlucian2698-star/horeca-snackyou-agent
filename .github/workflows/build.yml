@@ -29,11 +29,20 @@ jobs:
           --hidden-import pymysql --hidden-import pymysql.cursors
           horeca_snackyou.py
 
+      - name: Teste diagnostic
+        run: python -m unittest -v test_diagnostic
+
+      - name: Construieste diagnosticul independent
+        run: pyinstaller --onefile --console --name snackyou-diagnostic --hidden-import pymysql diagnostic.py
+
       - name: Instalează Inno Setup
         run: choco install innosetup -y --no-progress
 
       - name: Construiește installer-ul
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
+
+      - name: Verifica reinstalarea fara pierdere de configuratie si stare
+        run: python -m unittest -v test_installer_windows
 
       - name: Publică artifactele (exe + installer)
         uses: actions/upload-artifact@v4
@@ -41,5 +50,6 @@ jobs:
           name: horeca-snackyou
           path: |
             dist/horeca-snackyou.exe
+            dist/snackyou-diagnostic.exe
             installer_out/horeca-snackyou-setup.exe
           if-no-files-found: error

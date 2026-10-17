@@ -34,6 +34,10 @@ pyinstaller --onefile --console --name horeca-snackyou ^
 if errorlevel 1 ( echo    EROARE la build. & pause & exit /b 1 )
 
 echo.
+python -m unittest -v test_diagnostic
+if errorlevel 1 ( pause & exit /b 1 )
+pyinstaller --onefile --console --name snackyou-diagnostic --hidden-import pymysql diagnostic.py
+if errorlevel 1 ( pause & exit /b 1 )
 echo [4/4] GATA.
 echo    Executabilul e in folderul:  dist\horeca-snackyou.exe
 echo    Copiaza-l unde vrei si dublu-click pe el ca sa pornesti configurarea.
