@@ -29,16 +29,25 @@ class InstallerUpgradeTests(unittest.TestCase):
                 conn.commit()
             pending = target / 'custom-pending.txt'
             pending.write_text('synthetic untouched')
-            files = (config, db, pending)
+            outbox = target / 'horeca-diagnostic-outbox.json'
+            outbox.write_text('{"last_sent": 100, "collector_version": 1}')
+            files = (config, db, pending, outbox)
             before = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
             try:
                 subprocess.run(args, check=True, timeout=120)
                 self.assertEqual(before, {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
                 self.assertTrue((target / 'horeca-snackyou.exe').is_file())
-                subprocess.run([str(target / 'snackyou-diagnostic.exe'), '--no-open'], input='\n', text=True, check=True, timeout=90)
+                archive = Path(tmp) / 'UnityPOS' / 'rapoarte_zilnice'
+                archive.mkdir(parents=True)
+                pdf = archive / 'raport_zilnic-1-2026-10-19.pdf'
+                pdf.write_bytes(b'%PDF-1.4\nSYNTHETIC WINDOWS FIXTURE')
+                os.utime(pdf, (100, 100))
+                env = dict(os.environ, LOCALAPPDATA=tmp)
+                subprocess.run([str(target / 'snackyou-diagnostic.exe'), '--no-open'], input='\n', text=True, check=True, timeout=120, env=env)
                 report = json.loads(next(target.glob('diagnostic-z-*.json')).read_text(encoding='utf-8'))
-                self.assertEqual(report['version'], '1.3-cloud')
+                self.assertEqual(report['version'], '1.4-cloud')
                 self.assertFalse(report['fiscal_source_verified'])
+                self.assertEqual(report['daily_archive']['samples'][0]['sha256'], hashlib.sha256(pdf.read_bytes()).hexdigest())
                 self.assertEqual(before, {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
             finally:
                 # Remove only this test installation / runner shortcuts.

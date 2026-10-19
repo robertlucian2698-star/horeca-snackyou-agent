@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 
 MAX_BYTES = 250 * 1024
+COLLECTOR_VERSION = 2
 
 
 def prepare_report(report, cfg):
@@ -25,6 +26,13 @@ def prepare_report(report, cfg):
             for file in folder.get('files', []):
                 file.pop('z_text_candidate', None)
         clean['excerpts_omitted'] = True
+    if len(json.dumps(clean, ensure_ascii=False).encode()) > MAX_BYTES:
+        for folder in clean.get('filesystem', {}).get('folders', []):
+            folder['files'] = folder.get('files', [])[:20]
+        clean['metadata_limited'] = True
+    if len(json.dumps(clean, ensure_ascii=False).encode()) > MAX_BYTES:
+        clean.get('daily_archive', {})['samples'] = []
+        clean['pdf_samples_omitted'] = True
     if len(json.dumps(clean, ensure_ascii=False).encode()) > MAX_BYTES:
         raise ValueError('diagnostic_limit')
     return clean
@@ -50,13 +58,14 @@ class DiagnosticWorker:
             except (ValueError, OSError): state = {}
         if not isinstance(state, dict):
             state = {}
-        if not state.get('pending') and state.get('last_sent') and self.now() - state['last_sent'] < 21600:
+        if not state.get('pending') and state.get('collector_version') == COLLECTOR_VERSION and state.get('last_sent') and self.now() - state['last_sent'] < 21600:
             return 'not_due'
         if not state.get('pending'):
+            state['collector_version'] = COLLECTOR_VERSION
             state['pending'] = prepare_report(self.collect(self.cfg), self.cfg)
             self.save(state)
         if self.send(self.cfg, state['pending']):
-            self.save({'last_sent': self.now()})
+            self.save({'last_sent': self.now(), 'collector_version': state.get('collector_version', 0)})
             return 'sent'
         return 'pending'
 

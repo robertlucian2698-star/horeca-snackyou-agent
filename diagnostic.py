@@ -7,6 +7,7 @@ import time
 import subprocess
 from datetime import datetime
 from pathlib import Path
+from archive_samples import collect_archive_samples
 from targeted_z import sample_reports, report_excerpt
 from pos_discovery import installed_pos_folders
 from disk_discovery import disk_candidates, xml_path_hints
@@ -177,10 +178,11 @@ def discover_pos():
 
 
 def collect_report(config):
-    report = {'version': '1.3-cloud', 'created_at': datetime.now().astimezone().isoformat(),
+    report = {'version': '1.4-cloud', 'created_at': datetime.now().astimezone().isoformat(),
               'fiscal_source_verified': False, 'database': database_report(config)}
     try:
         folders = discover_pos()
+        report['daily_archive'] = collect_archive_samples(folders)
         report['filesystem'] = {'status': 'ok' if folders else 'pos_folder_not_found',
             'folders': [dict(label='POS-'+str(i+1), location=str(p), config_structure=xml_path_hints(p)[1], **file_report(p)) for i,p in enumerate(folders)]}
     except Exception as exc:
@@ -191,7 +193,7 @@ def collect_report(config):
 def main():
     print('SnackYou - diagnostic Z separat. Lasa agentul si UnityPOS pornite.')
     print('Doar citire: inregistrari registru/inchidere si documente Z candidate.')
-    report = {'version': '1.3-cloud', 'created_at': datetime.now().astimezone().isoformat(),
+    report = {'version': '1.4-cloud', 'created_at': datetime.now().astimezone().isoformat(),
               'fiscal_source_verified': False, 'database': {'status': 'skipped'},
               'filesystem': {'status': 'skipped'}}
     try:
@@ -209,6 +211,7 @@ def main():
         report['database'] = {'status': 'config_error', **safe_error(exc)}
     try:
         folders = discover_pos()
+        report['daily_archive'] = collect_archive_samples(folders)
         report['filesystem'] = {'status': 'ok' if folders else 'pos_folder_not_found',
                                 'folders': [dict(label='POS-' + str(i+1), **file_report(p)) for i, p in enumerate(folders)]}
     except Exception as exc:
