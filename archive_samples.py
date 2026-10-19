@@ -48,7 +48,9 @@ def collect_archive_samples(roots, now=None):
                         continue
                     try:
                         day = date.fromisoformat(match[1]).isoformat()
-                        info = entry.stat(follow_symlinks=False)
+                        # Windows DirEntry.stat caches zero file identifiers; use a fresh
+                        # path stat so identity can be compared with the open handle.
+                        info = os.stat(entry.path, follow_symlinks=False)
                         if not stat.S_ISREG(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 1024:
                             continue
                         summary['matched_files'] += 1

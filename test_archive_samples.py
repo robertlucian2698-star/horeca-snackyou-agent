@@ -27,7 +27,7 @@ class ArchiveTests(unittest.TestCase):
         r = collect_archive_samples([self.root, self.folder], now=1000)
         self.assertEqual(r['archives'][0]['matched_files'], 252)
         self.assertEqual(len(r['archives']), 1)
-        self.assertEqual([s['date'] for s in r['samples']], ['2026-10-19','2026-10-18'])
+        self.assertEqual([s['date'] for s in r['samples']], ['2026-10-19','2026-10-18'],r)
         self.assertEqual(base64.b64decode(r['samples'][0]['content_base64']), b'%PDF-1.4\nSYNTHETIC')
         self.assertFalse(r['fiscal_source_verified'])
     def test_invalid_large_and_recent_are_skipped(self):
@@ -36,7 +36,7 @@ class ArchiveTests(unittest.TestCase):
         p=self.pdf(3,'2026-10-17'); os.utime(p,(999,999))
         self.pdf(4,'2026-10-16')
         r=collect_archive_samples([self.root],now=1000)
-        self.assertEqual(len(r['samples']),1)
+        self.assertEqual(len(r['samples']),1,r)
         self.assertEqual({s['reason'] for s in r['skipped']},{'too_large','not_pdf','still_recent'})
     @unittest.skipIf(os.name=='nt','Windows junction test handled separately')
     def test_symlink_folder_rejected(self):
