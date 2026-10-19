@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 MAX_BYTES = 250 * 1024
-COLLECTOR_VERSION = 2
+COLLECTOR_VERSION = 3
 
 
 def prepare_report(report, cfg):
@@ -30,6 +30,11 @@ def prepare_report(report, cfg):
         for folder in clean.get('filesystem', {}).get('folders', []):
             folder['files'] = folder.get('files', [])[:20]
         clean['metadata_limited'] = True
+    if len(json.dumps(clean, ensure_ascii=False).encode()) > MAX_BYTES:
+        for location in clean.get('fiscal_discovery', {}).get('locations', []):
+            location['files'] = location.get('files', [])[:10]
+            location['truncated'] = True
+        clean['fiscal_inventory_limited'] = True
     if len(json.dumps(clean, ensure_ascii=False).encode()) > MAX_BYTES:
         clean.get('daily_archive', {})['samples'] = []
         clean['pdf_samples_omitted'] = True

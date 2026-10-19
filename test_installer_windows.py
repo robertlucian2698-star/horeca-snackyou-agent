@@ -42,12 +42,17 @@ class InstallerUpgradeTests(unittest.TestCase):
                 pdf = archive / 'raport_zilnic-1-2026-10-19.pdf'
                 pdf.write_bytes(b'%PDF-1.4\nSYNTHETIC WINDOWS FIXTURE')
                 os.utime(pdf, (100, 100))
+                printer = Path(tmp) / 'UnityPOS' / 'printer' / 'UnityPrinter'
+                printer.mkdir(parents=True)
+                (printer / 'data.xml').write_text('<data><driver>SyntheticDriver</driver></data>')
+                (printer / 'fiscal.log').write_text('RAPORT FISCAL ZILNIC\nZ NR:0507\nTOTAL1372')
                 env = dict(os.environ, LOCALAPPDATA=tmp)
                 subprocess.run([str(target / 'snackyou-diagnostic.exe'), '--no-open'], input='\n', text=True, check=True, timeout=120, env=env)
                 report = json.loads(next(target.glob('diagnostic-z-*.json')).read_text(encoding='utf-8'))
-                self.assertEqual(report['version'], '1.4-cloud')
+                self.assertEqual(report['version'], '1.5-cloud')
                 self.assertFalse(report['fiscal_source_verified'])
                 self.assertEqual(report['daily_archive']['samples'][0]['sha256'], hashlib.sha256(pdf.read_bytes()).hexdigest())
+                self.assertIn('0507', report['fiscal_discovery']['text_candidates'][0]['preview'])
                 self.assertEqual(before, {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
             finally:
                 # Remove only this test installation / runner shortcuts.
