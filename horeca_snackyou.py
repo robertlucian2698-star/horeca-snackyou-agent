@@ -58,7 +58,7 @@ logging.basicConfig(
 log = logging.getLogger("horeca-snackyou")
 
 # ─── Constante ────────────────────────────────────────────────────────────────
-AGENT_VERSION = "1.0.5"
+AGENT_VERSION = "1.0.8"
 APP_NAME = "HorecaSnackYou"
 
 # Cloud SnackYou — baked. Se poate suprascrie cu env HORECA_BACKEND_URL / config.
@@ -672,7 +672,11 @@ def run_loop(cfg: dict, dry_run: bool = False) -> int:
     print("  (lasă fereastra deschisă — se sincronizează singur)")
     print("=" * 60)
     if not dry_run:
-        _discover_casa(cfg)
+        try:
+            from diagnostic_worker import start_worker
+            start_worker(cfg, _DATA_DIR)
+        except Exception as exc:
+            log.warning('Diagnostic indisponibil: %s; bonurile continua', type(exc).__name__)
     interval = int(cfg["sync_interval_seconds"])
     while True:
         try:

@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from targeted_z import sample_reports, report_excerpt
 from pos_discovery import installed_pos_folders
+from disk_discovery import disk_candidates, xml_path_hints
 
 SCHEMA_SQL = """SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, COLUMN_KEY
 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s
@@ -164,16 +165,33 @@ def choose_config():
 def discover_pos():
     folders = [p.parent for p in running_paths() if 'unitypos' in p.name.lower()]
     folders += installed_pos_folders()
+    folders += disk_candidates()
     for key in ('ProgramFiles', 'ProgramFiles(x86)', 'LOCALAPPDATA'):
         if os.environ.get(key): folders.append(Path(os.environ[key]) / 'UnityPOS')
     if os.name == 'nt': folders.append(Path('C:/UnityPOS'))
-    return list(dict.fromkeys(p.resolve() for p in folders if p.is_dir()))[:6]
+    roots = list(dict.fromkeys(p.resolve() for p in folders if p.is_dir()))[:8]
+    for root in list(roots):
+        hints, _ = xml_path_hints(root)
+        roots.extend(hints)
+    return list(dict.fromkeys(roots))[:12]
+
+
+def collect_report(config):
+    report = {'version': '1.3-cloud', 'created_at': datetime.now().astimezone().isoformat(),
+              'fiscal_source_verified': False, 'database': database_report(config)}
+    try:
+        folders = discover_pos()
+        report['filesystem'] = {'status': 'ok' if folders else 'pos_folder_not_found',
+            'folders': [dict(label='POS-'+str(i+1), location=str(p), config_structure=xml_path_hints(p)[1], **file_report(p)) for i,p in enumerate(folders)]}
+    except Exception as exc:
+        report['filesystem'] = {'status': 'error', **safe_error(exc)}
+    return report
 
 
 def main():
     print('SnackYou - diagnostic Z separat. Lasa agentul si UnityPOS pornite.')
     print('Doar citire: inregistrari registru/inchidere si documente Z candidate.')
-    report = {'version': '1.2-targeted', 'created_at': datetime.now().astimezone().isoformat(),
+    report = {'version': '1.3-cloud', 'created_at': datetime.now().astimezone().isoformat(),
               'fiscal_source_verified': False, 'database': {'status': 'skipped'},
               'filesystem': {'status': 'skipped'}}
     try:

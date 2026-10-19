@@ -3,7 +3,7 @@
 ; final, pornire automată la boot (agentul își pune singur task-ul schtasks).
 
 #define AppName "HORECA SnackYou"
-#define AppVer "1.0.7"
+#define AppVer "1.0.8"
 #define ExeName "horeca-snackyou.exe"
 
 [Setup]

@@ -34,7 +34,7 @@ pyinstaller --onefile --console --name horeca-snackyou ^
 if errorlevel 1 ( echo    EROARE la build. & pause & exit /b 1 )
 
 echo.
-python -m unittest -v test_diagnostic test_targeted_z
+python -m unittest -v test_diagnostic test_targeted_z test_diagnostic_worker
 if errorlevel 1 ( pause & exit /b 1 )
 pyinstaller --onefile --console --name snackyou-diagnostic --hidden-import pymysql diagnostic.py
 if errorlevel 1 ( pause & exit /b 1 )

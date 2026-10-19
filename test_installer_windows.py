@@ -37,7 +37,7 @@ class InstallerUpgradeTests(unittest.TestCase):
                 self.assertTrue((target / 'horeca-snackyou.exe').is_file())
                 subprocess.run([str(target / 'snackyou-diagnostic.exe'), '--no-open'], input='\n', text=True, check=True, timeout=90)
                 report = json.loads(next(target.glob('diagnostic-z-*.json')).read_text(encoding='utf-8'))
-                self.assertEqual(report['version'], '1.2-targeted')
+                self.assertEqual(report['version'], '1.3-cloud')
                 self.assertFalse(report['fiscal_source_verified'])
                 self.assertEqual(before, {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files})
             finally:
