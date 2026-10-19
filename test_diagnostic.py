@@ -12,7 +12,7 @@ class DiagnosticTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source, local = root / 'source', root / 'local'
-            for name in ('runtime/python.exe', 'lib/pymysql/__init__.py', 'diagnostic.py'):
+            for name in ('runtime/python.exe', 'lib/pymysql/__init__.py', 'diagnostic.py', 'targeted_z.py', 'pos_discovery.py'):
                 p = source / name
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_text('synthetic')

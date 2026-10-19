@@ -7,6 +7,8 @@ import time
 import subprocess
 from datetime import datetime
 from pathlib import Path
+from targeted_z import sample_reports, report_excerpt
+from pos_discovery import installed_pos_folders
 
 SCHEMA_SQL = """SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, COLUMN_KEY
 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s
@@ -47,8 +49,10 @@ def database_report(config, connect=None):
             entry = tables.setdefault(table, {'name': table, 'candidate_z': candidate(table), 'columns': []})
             entry['columns'].append({'name': column, 'type': dtype, 'key': key})
             entry['candidate_z'] |= candidate(column)
+        samples = sample_reports(conn, tables)
         return {'status': 'ok', 'truncated': len(rows) > 10000,
-                'tables': list(tables.values()), 'business_rows_read': 0}
+                'tables': list(tables.values()), 'targeted_samples': samples,
+                'business_rows_read': sum(len(v.get('rows', [])) for v in samples.values())}
     except Exception as exc:
         return {'status': 'error', **safe_error(exc)}
     finally:
@@ -65,6 +69,7 @@ def file_report(folder):
     pending = [(root, 0)]
     files, examined, errors = [], 0, 0
     truncated = False
+    excerpt_count = 0
     while pending:
         directory, depth = pending.pop()
         try:
@@ -88,8 +93,14 @@ def file_report(folder):
                         if any(word in name for word in ('password', 'secret', 'token', 'config', '.env', 'state')):
                             continue
                         if candidate(name) or Path(name).suffix in ('.fdb', '.mdb', '.dbf', '.sqlite', '.db', '.pdf', '.xml'):
-                            files.append({'path_relative_to_pos': str(Path(entry.path).relative_to(root)),
-                                          'bytes': info.st_size, 'modified_epoch': info.st_mtime})
+                            item = {'path_relative_to_pos': str(Path(entry.path).relative_to(root)),
+                                    'bytes': info.st_size, 'modified_epoch': info.st_mtime}
+                            if excerpt_count < 5:
+                                excerpt = report_excerpt(Path(entry.path))
+                                if excerpt:
+                                    item['z_text_candidate'] = excerpt
+                                    excerpt_count += 1
+                            files.append(item)
                     except OSError:
                         errors += 1
         except OSError:
@@ -152,16 +163,17 @@ def choose_config():
 
 def discover_pos():
     folders = [p.parent for p in running_paths() if 'unitypos' in p.name.lower()]
+    folders += installed_pos_folders()
     for key in ('ProgramFiles', 'ProgramFiles(x86)', 'LOCALAPPDATA'):
         if os.environ.get(key): folders.append(Path(os.environ[key]) / 'UnityPOS')
     if os.name == 'nt': folders.append(Path('C:/UnityPOS'))
-    return list(dict.fromkeys(p.resolve() for p in folders if p.is_dir()))[:3]
+    return list(dict.fromkeys(p.resolve() for p in folders if p.is_dir()))[:6]
 
 
 def main():
     print('SnackYou - diagnostic Z separat. Lasa agentul si UnityPOS pornite.')
-    print('Nu se modifica POS-ul; se citesc schema MySQL si nume de fisiere.')
-    report = {'version': '1.1-auto', 'created_at': datetime.now().astimezone().isoformat(),
+    print('Doar citire: inregistrari registru/inchidere si documente Z candidate.')
+    report = {'version': '1.2-targeted', 'created_at': datetime.now().astimezone().isoformat(),
               'fiscal_source_verified': False, 'database': {'status': 'skipped'},
               'filesystem': {'status': 'skipped'}}
     try:
@@ -189,7 +201,7 @@ def main():
     print('Baza: ' + report['database']['status'] + '; fisiere: ' + report['filesystem']['status'])
     print('Trimite doar fisierul diagnostic-z-....json, inclusiv daca arata error.')
     print('Nu trimite configuratia agentului. Agentul nu a fost oprit sau modificat.')
-    if os.name == 'nt':
+    if os.name == 'nt' and '--no-open' not in sys.argv:
         subprocess.Popen([str(Path(os.environ['SystemRoot']) / 'explorer.exe'), '/select,', str(output)])
 
 

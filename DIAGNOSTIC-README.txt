@@ -1,34 +1,14 @@
-SNACKYOU - INSTALARE DIAGNOSTIC AUTOMAT 1.1
-Windows 10/11 Intel/AMD 64 biti. Nu necesita Python instalat sau drepturi admin.
-
-1. Copiaza ZIP pe Desktop-ul calculatorului casei.
-2. Click dreapta > Extract All / Extragere totala.
-3. Deschide folderul extras si dublu click INSTALEAZA-DIAGNOSTIC.cmd.
-4. Lasa agentul si UnityPOS pornite. Configuratia se cauta automat in
-   instalarea standard, langa diagnosticul integrat si langa agentul activ.
-   Daca exista mai multe configuratii, alege doar numarul celei dorite.
-5. La final Explorer selecteaza fisierul diagnostic-z-....json. Trimite-l aici.
-   Daca nu gaseste configuratia sau sursa POS, trimite tot raportul rezultat.
-   Nu copia si nu trimite configuratia agentului.
-
-Acest pachet instaleaza NUMAI diagnosticul separat sub
-%LOCALAPPDATA%/SnackYouDiagnostic/diagnostic-1.1-... si il ruleaza.
-NU inlocuieste agentul de bonuri, NU opreste procese, NU schimba startup,
-NU modifica baza sau configuratia existenta. Reinstalarea creeaza un folder nou.
-Nu reprezinta inca noul installer complet horeca-snackyou-setup.exe.
-
-Cauta folderul UnityPOS din procesele active si locatiile standard.
-Daca instalarea e particularizata si nu e detectata, raportul spune explicit.
-Citeste schema MySQL, nu randuri business. Enumera metadate de fisiere,
-nu continutul lor. Fara upload; tokenul si parolele nu se includ in raport.
-Numele relative de fisiere/tabele pot fi comerciale; trimite raportul privat.
-Nu emite raport fiscal sau inchidere de zi. Candidatele nu confirma sursa Z.
-
-Limite: maximum 10001 coloane schema, 3 foldere POS, 5000 intrari/200 rezultate
-si circa 10 secunde per folder; timeout de conexiune 5s, citire 8s.
-Daca Windows blocheaza pornirea, nu dezactiva protectiile: trimite mesajul.
-Testat local pe date sintetice; rularea reala Windows/MySQL ramane de verificat.
-
-Python 3.13.16 embedded oficial, licenta runtime/LICENSE.txt:
-https://www.python.org/downloads/release/python-31316/
-PyMySQL 1.2.0: licenta PyMySQL-LICENSE.txt.
+DIAGNOSTIC TINTIT Z 1.2 - INSTALLER COMPLET 1.0.7
+Instaleaza peste versiunea existenta, sub acelasi cont Windows. Nu dezinstala.
+Opreste temporar agentul cu Ctrl+C pentru actualizarea executabilului; UnityPOS ramane pornit.
+La final bifeaza pornirea agentului cu configuratia existenta si Diagnostic Z automat.
+Config si baza de stare nu sunt suprascrise. Daca apare configurare noua neasteptata, nu completa date noi.
+Diagnosticul detecteaza config si cauta UnityPOS prin procese, scurtaturi Desktop/Start Menu si registrul aplicatiilor.
+Citeste ultimele 50 pozitii registru, 10 registre, 20 sesiuni din schema confirmata. Numai SELECT, fara modificari.
+Cauta documente candidate in maximum 6 foldere; cel mult 5 fragmente text/folder de maximum 4000 caractere,
+numai din fisiere txt/xml/csv cu nume fiscal/Z si marker de raport Z. Nu citeste continut PDF/binar.
+Raportul contine date comerciale reale (documente, incasari/plati, explicatii); trimite-l privat.
+Nu include config, tokenul agentului sau parola MySQL; nu efectueaza upload automat.
+La final Explorer selecteaza diagnostic-z-....json; trimite doar acel fisier.
+Lipsa unei surse sau erorile sunt raportate; candidatele NU sunt rapoarte fiscale confirmate.
+Nu emite o noua inchidere de zi. Nu necesita cautarea manuala a fisierelor.
