@@ -58,7 +58,7 @@ logging.basicConfig(
 log = logging.getLogger("horeca-snackyou")
 
 # ─── Constante ────────────────────────────────────────────────────────────────
-AGENT_VERSION = "1.0.11"
+AGENT_VERSION = "1.0.12"
 APP_NAME = "HorecaSnackYou"
 
 # Cloud SnackYou — baked. Se poate suprascrie cu env HORECA_BACKEND_URL / config.
@@ -683,6 +683,12 @@ def run_loop(cfg: dict, dry_run: bool = False) -> int:
             start_archive_worker(cfg, _DATA_DIR)
         except Exception as exc:
             log.warning('Arhiva indisponibila: %s; bonurile continua', type(exc).__name__)
+    if not dry_run:
+        try:
+            from catalog_sync import start_worker as start_catalog_worker
+            start_catalog_worker(cfg)
+        except Exception as exc:
+            log.warning('Catalog indisponibil: %s; bonurile continua', type(exc).__name__)
     interval = int(cfg["sync_interval_seconds"])
     while True:
         try:
