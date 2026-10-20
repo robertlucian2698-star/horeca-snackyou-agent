@@ -31,7 +31,9 @@ class InstallerUpgradeTests(unittest.TestCase):
             pending.write_text('synthetic untouched')
             outbox = target / 'horeca-diagnostic-outbox.json'
             outbox.write_text('{"last_sent": 100, "collector_version": 1}')
-            files = (config, db, pending, outbox)
+            ledger = target / "horeca-archive-ledger.json"
+            ledger.write_text('{"identity":"synthetic","acked":{"one":"hash"}}')
+            files = (config, db, pending, outbox, ledger)
             before = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
             try:
                 subprocess.run(args, check=True, timeout=120)

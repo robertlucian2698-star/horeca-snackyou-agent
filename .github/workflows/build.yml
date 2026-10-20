@@ -30,7 +30,7 @@ jobs:
           horeca_snackyou.py
 
       - name: Teste diagnostic
-        run: python -m unittest -v test_diagnostic test_targeted_z test_diagnostic_worker test_archive_samples test_fiscal_discovery
+        run: python -m unittest -v test_diagnostic test_targeted_z test_diagnostic_worker test_archive_samples test_fiscal_discovery test_archive_sync
 
       - name: Construieste diagnosticul independent
         run: pyinstaller --onefile --console --name snackyou-diagnostic --hidden-import pymysql diagnostic.py
